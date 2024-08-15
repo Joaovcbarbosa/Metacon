@@ -1,14 +1,7 @@
+const generateRandomCode = require("../src/lib/generateRandomCode");
 const { PrismaClient } = require("@prisma/client");
 const bcrypt = require("bcrypt");
-const crypto = require("crypto");
 const prisma = new PrismaClient();
-
-function generateRandomCode(length) {
-  const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-  return Array.from(crypto.randomBytes(length))
-      .map(byte => characters[byte % characters.length])
-      .join("");
-}
 
 async function createUsers() {
   const saltRounds = 10;
@@ -125,7 +118,7 @@ async function createAnswers() {
   const students = await prisma.user.findMany({
     where: {
       id: {
-        in: Array.from({ length: 15 }, (_, i) => i + 2), // user_id 2 to 16
+        in: Array.from({ length: 15 }, (_, i) => i + 2),  
       },
     },
   });
@@ -155,19 +148,22 @@ async function createPerformance() {
   const students = await prisma.user.findMany({
     where: {
       id: {
-        in: Array.from({ length: 15 }, (_, i) => i + 2), // user_id 2 to 16
+        in: Array.from({ length: 15 }, (_, i) => i + 2), 
       },
       role: "STUDENT",
     },
   });
 
-  const texts = await prisma.text.findMany();
+  const classTexts = await prisma.classText.findMany(); 
 
   for (const student of students) {
-    for (const text of texts) {
+    let totalStudentValue = 0;
+    let performanceCount = 0;
+
+    for (const classText of classTexts) {
       const questions = await prisma.question.findMany({
         where: {
-          textId: text.id,
+          textId: classText.textId,
         },
       });
 
@@ -198,11 +194,25 @@ async function createPerformance() {
       await prisma.performance.create({
         data: {
           studentId: student.id,
-          textId: text.id,
-          value: totalValue,
+          classId: classText.classId, 
+          textId: classText.textId,  
+          grade: totalValue,
         },
       });
+
+      totalStudentValue += totalValue;
+      performanceCount++;
     }
+
+    const averageGrade = totalStudentValue / performanceCount;
+    await prisma.user.update({
+      where: {
+        id: student.id,
+      },
+      data: {
+        grade: averageGrade,
+      },
+    });
   }
 }
 
