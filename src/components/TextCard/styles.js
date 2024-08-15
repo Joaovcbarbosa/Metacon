@@ -10,8 +10,8 @@ export const CardContainer = styled.div`
   border-radius: 20px;
   overflow: hidden; 
   background-color: ${({ theme }) => theme.COLORS.WHITE };
-  width: 260px;
-  height: 280px;
+  width: 320px;
+  height: 320px;
 
   > p {
     margin: 0.8rem 0;
@@ -26,23 +26,21 @@ export const HeaderContainer = styled.div`
 `;
 
 export const Header = styled.div`
+  position: relative;
   width: 100%;
   padding: 1.6rem 2.4rem;
+  text-align: center;
   color: ${({ theme }) => theme.COLORS.WHITE };
-  display: flex;
-  justify-content: space-between; 
-  align-items: center;
 
   > h1 {
     color: ${({ theme }) => theme.COLORS.WHITE };
     font-size: 2.4rem;
-    flex: 1; 
-    text-align: center;
-    word-wrap: break-word; 
-    word-break: break-word;
   }
 
   > svg {
+    position: absolute;
+    top: 20px;
+    right: 20px;
     cursor: pointer;
     color: ${({ theme }) => theme.COLORS.WHITE };
 
@@ -53,14 +51,14 @@ export const Header = styled.div`
 `;
 
 export const CoverContainer = styled.div`
-  width: ${({ $newText }) => $newText ? "8rem" : "18rem" }; 
-  height: ${({ $newText }) => $newText ? "8rem" : "20rem" }; 
+  cursor: pointer;
+  width: ${({ $newText }) => $newText ? "10rem" : "18rem" }; 
+  height: ${({ $newText }) => $newText ? "10rem" : "20rem" }; 
   position: relative;
   margin: 0.8rem 0;
 
   > img {
-    cursor: ${({ $newText }) => $newText ? "pointer" : "default" };
     border-radius: 20px;
-    margin-top: ${({ $newText }) => $newText ? "4.2rem" : "0" }; 
+    margin-top: ${({ $newText }) => $newText ? "6rem" : "0" }; 
   }
 `;

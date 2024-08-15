@@ -13,6 +13,6 @@ export const ContentContainer = styled.div`
   width: 100%;
   overflow-y: auto;
   display: flex;
-  justify-content: center;
+  justify-content: space-around;
   flex-wrap: wrap; 
 `;

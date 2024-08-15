@@ -3,52 +3,95 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { 
   Container, 
+  CameraContainer, 
   ContentContainer, 
   BackButtonContainer,
+  CoverContainer, 
   FieldsContainer, 
   ButtonsContainer,
   ModalContent, 
-  ModalButtonsContent,
-  AccessKeyContainer,
-  AccessKeyWrapper,
-  ItensContainer
+  ModalButtonsContent
 } from "./styles";
+import bookPlaceholder from "@/assets/book-placeholder.png"; 
+import Image from "next/image";
 import { Header } from "@/components/Header";
 import { Input } from "@/components/Input";
+import { Questions } from "@/components/Questions";
+import { TextArea } from "@/components/TextArea";
+import { LoadingPage } from "@/components/LoadingPage";
 import { Button } from "@/components/Button";
-import { SearchText } from "@/components/SearchText";
-import { Student } from "@/components/Student";
-import { Text } from "@/components/Text";
+import { SelectInput } from "@/components/SelectInput";
+import { FaCamera } from "react-icons/fa";
 import { IoMdArrowRoundBack } from "react-icons/io";
-import { FaRegCopy } from "react-icons/fa";
 import { toast } from "react-toastify";
 import { api } from "@/lib/api";
 import Modal from "react-modal";
 import { useTheme } from "styled-components";
 
-const EditClass = () => {
+const EditText = () => {
   const theme = useTheme();
   const { id } = useParams(); 
   const router = useRouter();
   const [isNew, setIsNew] = useState(false);
-  const [name, setName] = useState(""); 
-  const [classroom, setClassroom] = useState({}); 
-  const [newId, setNewId] = useState(undefined); 
-  const [accessKey, setAccessKey] = useState(""); 
+  const [loading, setLoading] = useState(false);
+  const [difficulty, setDifficulty] = useState(0);
+  const [title, setTitle] = useState(""); 
+  const [content, setContent] = useState(""); 
+  const [difficulties, setDifficulties] = useState([
+    { id: 0, name: "SELECIONE A DIFICULDADE" },
+    { id: "VERY_EASY", name: "MUITO FÁCIL" },
+    { id: "EASY", name: "FÁCIL" },
+    { id: "REGULAR", name: "MÉDIO" },
+    { id: "HARD", name: "DIFÍCIL" },
+    { id: "VERY_HARD", name: "MUITO DIFÍCIL" }
+  ]);
+  const [newCover, setNewCover] = useState("");
+  const [coverUrl, setCoverUrl] = useState(bookPlaceholder); 
+  const [questions, setQuestions] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  function handleCopyAccessKey() {
-    navigator.clipboard.writeText(accessKey);
-    toast.success("Copiado!", {
-      autoClose: 1000
-    });
+  useEffect(() => {
+    Modal.setAppElement("#__next");
+    
+    async function fetchText() {
+      if(id === "new") {
+        setIsNew(true);
+        return;
+      }
+
+      try {
+        const result = await api.get(`/texts/${id}`);
+        const text = result?.data?.text.text;
+        const questions = result?.data?.text.questions;
+
+        setTitle(text.name); 
+        setContent(text.content); 
+        setDifficulty(text.difficulty); 
+        setQuestions(text.questions); 
+        setCoverUrl(text.coverUrl || bookPlaceholder); 
+        setQuestions(questions);
+        setIsNew(false);
+      } catch {
+        router.push("/teacher/text");
+      }
+    }
+
+    fetchText();
+  }, [id]);
+
+  function handleAvatarChange(event) {
+    const file = event.target.files[0];
+    setNewCover(file);
+
+    const newCover = URL.createObjectURL(file);
+    setCoverUrl(newCover);
   }
 
   async function confirmDelete() {
     try {
-      await api.delete(`/classes/${newId}`);
+      await api.delete(`/texts/${id}`);
       sessionStorage.setItem("messageStorage", "Excluído com sucesso!");
-      router.push("/teacher/class");
+      router.push("/teacher/text");
     } catch (error) {
       console.log(error);
       const errorMessage = error.response?.data?.message;
@@ -65,32 +108,51 @@ const EditClass = () => {
     setIsModalOpen(true);
   }
 
+  async function uploadCover(id) {
+    const fileUploadForm = new FormData();
+    fileUploadForm.append("cover", newCover);
+    const response = await api.patch(`/texts/cover/${id}`, fileUploadForm);
+    return response.data.cover;
+  }
+
   async function handleSave() {
-    if (!name) {
+    if (!title || !difficulty || !content) {
       toast.error("Preencha todos os campos!");
       return;
     }
 
+    if (!questions || questions.length === 0) {
+      toast.error("Insira perguntas!");
+      return;
+    }
+
+    setLoading(true);
     try {
+      let textId = id;
       if(isNew) {
-        const response = await api.post("/classes", {
-          name
+        const response = await api.post("/texts", {
+          name: title,
+          difficulty,
+          content,
+          questions
         });
   
-        const { classroom } = response.data;
-        toast.success("Turma criada com sucesso!", {
-          onClose: () => {
-            router.push(`/teacher/class/${classroom.id}`);
-          },
-          autoClose: 1000, 
-        });
+        textId = response.data.id;
       } else {
-        await api.put(`/classes/${newId}`, {
-          name
+        await api.put(`/texts/${textId}`, {
+          name: title,
+          difficulty,
+          content,
+          questions
         });
-        sessionStorage.setItem("messageStorage", "Turma atualizada com sucesso!");
-        router.push("/teacher/class");
       }
+
+      if (newCover) {
+        await uploadCover(textId);
+      }
+
+      sessionStorage.setItem("messageStorage", `${isNew ? "Cadastrado" : "Atualizado"} com sucesso!`);
+      router.push("/teacher/text");
     } catch (error) {
       console.log(error);
       const errorMessage = error.response?.data?.message;
@@ -99,112 +161,63 @@ const EditClass = () => {
       } else {
         toast.error("Não foi possível atualizar");
       }
-    } 
-  }
-
-  useEffect(() => {
-    Modal.setAppElement("#__next");
-    
-    async function fetchClass() {
-      if(id === "new") {
-        setIsNew(true);
-        return;
-      }
-
-      try {
-        const result = await api.get(`/classes/${id}`);
-        const classroom = result?.data?.classroom;
-
-        setClassroom(classroom); 
-        setName(classroom.name); 
-        setAccessKey(classroom.accessKey); 
-        setIsNew(false);
-        setNewId(id);
-      } catch {
-        router.push("/teacher/class");
-      }
+    } finally {
+      setLoading(false);
     }
-
-    fetchClass();
-  }, [id]);
+  }
 
   return (
     <Container>
+      {loading && <LoadingPage />}
       <Header />
       <ContentContainer>
-        <h1>Dados da Turma</h1>
-        <BackButtonContainer onClick={() => router.push("/teacher/class")}>
+        <h1>Dados da Leitura</h1>
+        <BackButtonContainer onClick={() => router.back()}>
           <IoMdArrowRoundBack size={60}/>
         </BackButtonContainer>
+        <CoverContainer>
+          {coverUrl && ( 
+            <Image
+              src={coverUrl}
+              alt="Capa do livro"
+              fill
+              quality={100}
+              priority
+            />
+          )}
+          <CameraContainer htmlFor="avatar">
+            <input type="file" id="avatar" onChange={handleAvatarChange} />
+            <FaCamera size={30} />
+          </CameraContainer>
+        </CoverContainer>
         <FieldsContainer>
           <Input
-            placeholder="Nome da turma"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
+            placeholder="Título"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
           />
-          {
-            accessKey && (
-              <AccessKeyContainer>
-                <label htmlFor="accessKey">Chave de ingresso:</label>
-                <AccessKeyWrapper>
-                  <p id="accessKey">{accessKey}</p>
-                  <FaRegCopy size={60} onClick={handleCopyAccessKey}/>
-                </AccessKeyWrapper>
-              </AccessKeyContainer>
-            )
-          }
+          <SelectInput
+            items={difficulties}
+            selectedOption={difficulty}
+            setSelectedOption={setDifficulty}
+          />
+          <TextArea
+            placeholder="Conteúdo"
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+          />
         </FieldsContainer>
       </ContentContainer>
-      {
-        !isNew && (
-          <ContentContainer>
-          <h2>Leituras</h2>
-          <SearchText
-            setClassroom={setClassroom}
-            classroom={classroom}
+
+      <ContentContainer>
+        <h2>Perguntas</h2>
+        <FieldsContainer>
+          <Questions
+            questions={questions}
+            setQuestions={setQuestions}
           />
-          {
-            classroom?.texts && 
-            classroom?.texts.length > 0 && 
-            (
-              <ItensContainer>
-              {
-                classroom.texts.map((t, i) => (
-                  <Text 
-                    key={i}
-                    index={i}
-                    text={t}
-                    setClassroom={setClassroom}
-                    classroom={classroom}
-                  />
-                ))
-              }
-            </ItensContainer>
-            )
-          }
-        </ContentContainer>
-        )
-      }
-      {
-        classroom?.students && classroom?.students.length > 0 && (
-          <ContentContainer>
-            <h2>Alunos</h2>
-            <ItensContainer>
-            {
-              classroom.students.map((s, i) => (
-                <Student 
-                  key={i}
-                  index={i}
-                  student={s}
-                  setClassroom={setClassroom}
-                  classroom={classroom}
-                />
-              ))
-            }
-            </ItensContainer>
-          </ContentContainer>
-        )
-      }
+        </FieldsContainer>
+      </ContentContainer>
       <ButtonsContainer>
         <Button
           title={"Salvar"}
@@ -255,4 +268,4 @@ const EditClass = () => {
   );
 };
 
-export default EditClass;
+export default EditText;
