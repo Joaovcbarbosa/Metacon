@@ -5,21 +5,28 @@ import {
   Header, 
   CoverContainer, 
   CardContainer } from "./styles";
-import classPlaceholder from "@/assets/class-placeholder.png";
+import bookPlaceholder from "@/assets/book-placeholder.png";
 import addPlaceholder from "@/assets/add.png";
 import Image from "next/image";
 import { FaPencilAlt } from "react-icons/fa";
 import { useRouter } from "next/navigation";
 
-export function ClassCard({ data, type, onClick }) {
+export function Card({ data, onClick }) {
   const router = useRouter();
-  const [cover, setCover] = useState(classPlaceholder);
+  const [cover, setCover] = useState(bookPlaceholder);
 
   useEffect(() => {
     if (data.id === 0) {
       setCover(addPlaceholder);
       return;
     }
+
+    if (data?.coverUrl) {
+      setCover(data.coverUrl);
+      return;
+    }
+
+    setCover(bookPlaceholder);
   }, []);
 
   return (
@@ -39,12 +46,13 @@ export function ClassCard({ data, type, onClick }) {
           <CoverContainer onClick={onClick} $newText={data.id === 0}>
             <Image
               src={cover}
-              alt={`${data.name}`}
+              alt={`Capa do livro ${data.name}`}
               fill
               quality={100}
               priority
             />
           </CoverContainer>
+          {data.id !== 0 && <p>Dificuldade: {data.difficulty}</p>}
         </CardContainer>
       )}
     </>

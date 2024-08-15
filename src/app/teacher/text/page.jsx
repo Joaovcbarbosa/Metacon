@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { Container, ContentContainer } from "./styles";
 import { Header } from "@/components/Header";
 import { Input } from "@/components/Input";
-import { TextCard } from "@/components/TextCard";
+import { Card } from "@/components/Card";
 import { api } from "@/lib/api";
 import { useTheme } from "styled-components";
 import { CiSearch } from "react-icons/ci";
@@ -56,14 +56,14 @@ const TextDashboard = () => {
       <ContentContainer>
         {
           !search && (
-            <TextCard onClick={handleNew}
+            <Card onClick={handleNew}
               data={newText} 
             />
           )
         }
         {
-          texts && texts.map(text => (
-            <TextCard
+          texts.map(text => (
+            <Card
               key={text.id}
               data={text} 
             />
