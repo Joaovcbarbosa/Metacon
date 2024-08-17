@@ -2,38 +2,38 @@ const classService = require("@/services/classService");
 const createResponse = require("@/lib/responseHelper");
 const AppError = require("@/lib/appError");
 
-const index = async (req, name) => {
-  const classroom = await classService.getByName(name);
+const index = async (req, name, userId) => {
+  const classroom = await classService.getByName(name, userId);
   return createResponse({ body: { classroom: classroom }, status: 200 });
 };
 
-const show = async (classId) => {
-  const classroom = await classService.getById(classId);
+const show = async (classId, userId) => {
+  const classroom = await classService.getById(classId, userId);
   return createResponse({ body: { classroom }, status: 200 });
 };
 
-const destroy = async (classId) => {
-  await classService.deleteById(classId);
+const destroy = async (classId, userId) => {
+  await classService.deleteById(classId, userId);
   return createResponse({ body: { message: "Inativado com sucesso!"}, status: 200 });
 };
 
-const create = async (req) => {
-  const { name, teacher_id, access_key } = await req.json();
-  if(!name || !teacher_id || !access_key) {
-    throw new AppError("Dados obrigatórios não informados!", 400);
-  }
-
-  const id = await classService.create({ name, teacher_id, access_key });
-  return createResponse({ body: { id }, status: 201 });
-};
-
-const update = async (req, classId) => {
+const create = async (req, userId) => {
   const { name } = await req.json();
   if(!name) {
     throw new AppError("Dados obrigatórios não informados!", 400);
   }
 
-  await classService.update({ id: classId, name });
+  const classroom = await classService.create({ name, userId });
+  return createResponse({ body: { classroom }, status: 201 });
+};
+
+const update = async (req, classId, userId) => {
+  const { name } = await req.json();
+  if(!name) {
+    throw new AppError("Dados obrigatórios não informados!", 400);
+  }
+
+  await classService.update({ id: classId, name, userId });
   return createResponse({ status: 201 });
 };
 
