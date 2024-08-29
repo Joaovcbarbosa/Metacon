@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import { Container, WallpaperContainer, LoginContainer } from "./styles";
 import { useAuth } from "@/context/auth";
@@ -9,20 +9,32 @@ import { Button } from "@/components/Button";
 import { MdEmail } from "react-icons/md";
 import { RiLockPasswordFill } from "react-icons/ri";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 
 const SignIn = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const { login } = useAuth();
-  const router = useRouter();
 
   async function handleLogin() {
     const user = await login(email, password);
     if (user) {
-      router.push("/");
+      window.location.href = "/";
     }
   }
+
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (event.key === "Enter") {
+        handleLogin();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [email, password]);
 
   return (
     <Container>
