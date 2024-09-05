@@ -14,7 +14,6 @@ import {
 import bookPlaceholder from "@/assets/book-placeholder.png"; 
 import Image from "next/image";
 import { Header } from "@/components/Header";
-import { Input } from "@/components/Input";
 import { Options } from "@/components/Options";
 import { TextArea } from "@/components/TextArea";
 import { LoadingPage } from "@/components/LoadingPage";
@@ -30,9 +29,43 @@ const EditText = () => {
   const [loading, setLoading] = useState(false);
   const [text, setText] = useState({}); 
   const [done, setDone] = useState(false); 
+  const [grade, setGrade] = useState(null);
   const [coverUrl, setCoverUrl] = useState(bookPlaceholder); 
   const [questions, setQuestions] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  function handleSubmit() {
+    for(let question of questions) {
+      if(!question.selectedChoiceId) {
+        toast.error("Responda todas as perguntas!");
+        return;
+      }
+    }
+    setIsModalOpen(true);
+  }
+
+  async function confirmSubmit() {
+    try {
+      setIsModalOpen(false);
+      await api.post(`/classText/${classId}/${textId}`, {
+        questions
+      });
+      toast.success("Respondido com sucesso!", {
+        onClose: () => {
+          window.location.reload();
+        },
+        autoClose: 1500, 
+      });
+    } catch (error) {
+      console.log(error);
+      const errorMessage = error.response?.data?.message;
+      if (errorMessage) {
+        toast.error(errorMessage);
+      } else {
+        toast.error("Não foi possível atualizar");
+      }
+    } 
+  }
 
   useEffect(() => {
     Modal.setAppElement("#__next");
@@ -40,11 +73,12 @@ const EditText = () => {
     async function fetchText() {
       try {
         const result = await api.get(`/classText/${classId}/${textId}`);
-        const done = result?.data?.classText?.done;
+        const grade = result?.data?.classText?.grade;
         const text = result?.data?.classText?.text;
         const questions = result?.data?.classText?.questions;
 
-        setDone(done);
+        setDone(grade != null);
+        setGrade(grade);
         setText(text);
         setCoverUrl(text.coverUrl || bookPlaceholder); 
         setQuestions(questions);
@@ -56,44 +90,17 @@ const EditText = () => {
     fetchText();
   }, [textId]);
 
-  async function confirmSubmit() {
-    // todo...
-    // if (!questions || questions.length === 0) {
-    //   toast.error("Insira perguntas!");
-    //   return;
-    // }
-
-    // setLoading(true);
-    // try {
-    //   let textId = id;
-    //   await api.put(`/texts/${textId}`, {
-    //     name: title,
-    //     difficulty,
-    //     content,
-    //     questions
-    //   });
-
-    //   sessionStorage.setItem("messageStorage", "Atualizado com sucesso!");
-    //   router.push("/student/text");
-    // } catch (error) {
-    //   console.log(error);
-    //   const errorMessage = error.response?.data?.message;
-    //   if (errorMessage) {
-    //     toast.error(errorMessage);
-    //   } else {
-    //     toast.error("Não foi possível atualizar");
-    //   }
-    // } finally {
-    //   setLoading(false);
-    // }
-  }
-
   return (
     <Container>
       {loading && <LoadingPage />}
       <Header />
-      <ContentContainer>
-        <h1>Dados da Leitura</h1>
+      <ContentContainer $grade={grade}>
+        <h1>{text.name}</h1>
+        {
+          done && (
+            <h2>Nota: <span>{grade}</span></h2>
+          )
+        }
         <BackButtonContainer onClick={() => router.back()}>
           <IoMdArrowRoundBack size={60}/>
         </BackButtonContainer>
@@ -109,11 +116,6 @@ const EditText = () => {
           )}
         </CoverContainer>
         <FieldsContainer>
-          <Input
-            placeholder="Título"
-            value={text.name || ""}
-            disabled
-          />
           <TextArea
             placeholder="Conteúdo"
             value={text.content || ""}
@@ -142,7 +144,7 @@ const EditText = () => {
               title={"Enviar"}
               width={"100%"}
               maxWidth={"800px"}
-              onClick={() => setIsModalOpen(true)}
+              onClick={handleSubmit}
             />
           </ButtonsContainer>
         )
